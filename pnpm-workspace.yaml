@@ -1,0 +1,45 @@
+# pnpm settings. This repository is a single package and declares no `packages:`
+# key, so it is not a workspace; pnpm reads this file for settings either way,
+# which is where these three keys now live. See REPO-STANDARDS.md §8 and §9.
+
+# Dependencies allowed to run install scripts. pnpm 11 stopped reading
+# `pnpm.onlyBuiltDependencies` from package.json, which is the major-to-major
+# move STD-PM-6 warns about; this is the location the pinned major (12)
+# expects. pnpm 12 rejects unrecognized keys in this file, so a typo here
+# fails the install rather than silently dropping the setting.
+allowBuilds:
+  lefthook: true
+
+# Minutes a version must have been on the registry before pnpm will install it,
+# which is the window in which a compromised release is normally yanked. Set
+# explicitly rather than inherited: pnpm 11 defaults this to 1440, pnpm 10
+# defaults it to off, so pinning the value keeps the policy the same across a
+# major bump. 1440 also matches the weekly dependabot cadence, where a longer
+# window would just defer every bump by an extra cycle. STD-SUP-3.
+minimumReleaseAge: 1440
+
+# All three entries are first-party @rcrsr packages, excluded by name rather than by
+# exact version so they survive the next release without a hand edit. STD-SUP-4.
+#
+# @rcrsr/rill and @rcrsr/rill-language-service release in lockstep, and the
+# compatibility workflow tests against their latest publish daily. Holding it for
+# 24 hours would mean that workflow tests the previous version on the day a
+# release lands, which is the one day it matters.
+#
+# @rcrsr/rill-dev carries the conformance checker and the lint rules. A fix to
+# the standard is only useful once every repository picks it up; a 24-hour hold
+# would mean CI keeps failing on an already-fixed element for a day. The
+# supply-chain argument for the delay is also weaker here: the package has no
+# dependencies and no lifecycle scripts, so its blast radius is the dev
+# toolchain rather than the published artifact.
+minimumReleaseAgeExclude:
+  - '@rcrsr/rill'
+  - '@rcrsr/rill-language-service'
+  - '@rcrsr/rill-dev'
+
+# Fail the install when a package's trust evidence weakens against an
+# earlier-published version, for example a drop from a trusted publisher to
+# provenance-only. STD-SUP-5. `trustLockfile` is left at its default of false:
+# setting it true would skip re-applying both this and minimumReleaseAge to
+# existing lockfile entries, silently disabling both.
+trustPolicy: no-downgrade

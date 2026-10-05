@@ -1,0 +1,128 @@
+# =============================================================================
+# THE rill-lsp ISSUE TAXONOMY, in one place. Four axes; one is a label set.
+#
+#   1. AREA (where) -- `area:*` labels, the glob map below. Path-derivable, so
+#      PRs get them automatically (actions/labeler via
+#      .github/workflows/pr-labels.yml). On issues the filer sets them.
+#      Pick ONE primary area, the one that owns the work, and add a second only
+#      when the work is genuinely co-owned. The PR labeler is additive and
+#      mechanical, so a cross-cutting PR collects one label per touched path.
+#      The minimize rule governs what humans apply, not the labeler.
+#
+#      Six areas, following the repository layout:
+#        area:protocol  src/server.ts, src/bin.ts, src/protocol/ -- JSON-RPC
+#                       transport, lifecycle, capability negotiation, document
+#                       sync, and position conversion.
+#        area:features  src/features/ -- one handler per LSP request
+#                       (diagnostics, hover, completion, definition, symbols,
+#                       semantic tokens, formatting), each a thin adapter over
+#                       @rcrsr/rill-language-service.
+#        area:grammars  grammars/ -- the TextMate and tree-sitter grammars.
+#        area:clients   clients/ and docs/clients/ -- per-editor integration.
+#        area:docs      README, CHANGELOG, CLAUDE.md.
+#        area:dx        CI, toolchain, scripts, test harness, root config.
+#                       Anything no user of @rcrsr/rill-lsp sees. A root
+#                       deps bump touches none of the source globs above, so it
+#                       would otherwise get no area at all.
+#
+#   2. STATUS (why not now) -- the `on-hold` label, issues-only, optional.
+#      The one state GitHub has no native home for:
+#        on-hold        valid, shaped work deliberately parked. Not low
+#                       priority (that is Priority Low, how urgent, not why
+#                       parked) and not blocked-on-a-specific-issue.
+#      Blocked on a SPECIFIC issue: use the native issue dependency ("Mark as
+#      blocked by" in the sidebar; query is:blocked) and NO label. Never
+#      duplicate a native relationship as a label.
+#
+#   3. TYPE (what kind) -- native org-level Issue Type, NOT a label,
+#      issues-only: Bug . Feature . Chore . Security . Idea
+#      Feature = net-new capability an editor user can see: a new LSP
+#      capability, a new editor client, a new grammar scope. Chore = robustness work on existing
+#      machinery with no visible surface change. Decision rule: "would a
+#      consumer notice it in a release note? Feature. Otherwise Chore."
+#      Security takes precedence when the issue is about the server's trust
+#      boundary: file access outside the workspace, code execution from a
+#      document, resource exhaustion from crafted input. Idea = captured but not yet shaped.
+#      Documentation work is NOT a type: it is `area:docs` on a Bug, Feature,
+#      or Chore.
+#
+#   4. PRIORITY (how urgent) -- native org-level Priority Issue Field, NOT a
+#      label, issues-only, optional: High = the queue . Medium = this cycle .
+#      Low = someday. Unset = not yet triaged.
+#
+# TITLES: issues are titled `[<primary-area>] <title>`, lowercase, bare area
+# name without the `area:` prefix: "[features] hover shows the wrong type".
+# PR titles do NOT take the bracket: they become main's squash-commit subjects
+# and keep conventional-commit format (`fix(features): ...`), where the scope
+# already names the primary area.
+#
+# COLORS: one signal per axis, label text is the load-bearing distinction
+# (WCAG 1.4.1, color reinforces, never the only signal). area:* uniform blue
+# #1d76db; on-hold gray #d2dae1; needs-triage yellow #fbca04. Create them with
+# .github/scripts/sync-labels.sh.
+#
+# Rule (enforced advisorily by .github/workflows/issue-labels.yml): every open
+# issue carries >=1 area: label + exactly one Type; Priority is set at triage;
+# on-hold is optional and never satisfies the area requirement. Issue forms
+# (.github/ISSUE_TEMPLATE/) pre-set the Type when filing from the web UI. PRs
+# carry only area labels; the linked issue holds Type/Priority/on-hold.
+# This file doubles as the one-stop taxonomy doc; there is no separate
+# CONTRIBUTING section to keep in sync.
+# =============================================================================
+
+'area:protocol':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/server.ts'
+          - 'src/bin.ts'
+          - 'src/index.ts'
+          - 'src/protocol/**'
+          - 'tests/protocol/**'
+          - 'tests/server.test.ts'
+
+'area:features':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/features/**'
+          - 'tests/features/**'
+
+'area:grammars':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'grammars/**'
+
+'area:clients':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'clients/**'
+          - 'docs/clients/**'
+
+'area:docs':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'README.md'
+          - 'CHANGELOG.md'
+          - 'CLAUDE.md'
+          - 'docs/**'
+
+'area:dx':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'scripts/**'
+          - '.claude/**'
+          # Root toolchain inputs. A root-only deps or interpreter-pin bump
+          # touches none of the source globs above, so it would otherwise get
+          # no area at all.
+          - 'package.json'
+          - 'pnpm-lock.yaml'
+          - 'pnpm-workspace.yaml'
+          - 'tsconfig*.json'
+          - 'vitest.config.ts'
+          - '.oxlintrc.json'
+          - '.oxfmtrc.json'
+          - 'knip.jsonc'
+          - 'lefthook.yml'
+          - '.node-version'
+          - '.nvmrc'
+          - '.gitignore'

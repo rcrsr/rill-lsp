@@ -1,0 +1,36 @@
+# Lefthook git hooks
+# Docs: https://lefthook.dev/configuration/
+#
+# Skip with `LEFTHOOK=0 git <command>` or `git <command> --no-verify`.
+
+pre-commit:
+  piped: true
+  commands:
+    # Format first, then lint. The reverse order lets the formatter undo a lint
+    # fix, so the commit carries the unfixed form. See REPO-STANDARDS.md
+    # STD-HOOK-2.
+    oxfmt:
+      priority: 1
+      glob: '*.{ts,tsx,js,mjs,cjs,json,yaml,yml}'
+      # The lockfile is in .oxfmtrc.json ignorePatterns. Without this exclude a
+      # lockfile-only commit hands oxfmt an all-ignored list, which exits
+      # non-zero and halts the piped chain. See REPO-STANDARDS.md STD-HOOK-5.
+      exclude:
+        - pnpm-lock.yaml
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    oxlint:
+      priority: 2
+      glob: '*.{ts,tsx}'
+      run: pnpm exec oxlint --config .oxlintrc.json --fix {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  commands:
+    # Command key is `typecheck` (the ecosystem name STD-HOOK-4 looks for);
+    # the script it runs keeps this package's root vocabulary, `check:types`.
+    typecheck:
+      run: pnpm run check:types
+    test:
+      run: pnpm run test

@@ -1,0 +1,29 @@
+# Code owners for rill-lsp. See REPO-STANDARDS.md STD-SUP-7.
+#
+# Last matching pattern wins, so the high-blast-radius paths sit at the bottom.
+
+# Everything, unless a later rule overrides.
+*                           @AndreBremer
+
+# Release and CI machinery. A change here can disable every other gate in the
+# repository, publish from an unverified tree, or widen a token's scope.
+/.github/                   @AndreBremer
+/.github/workflows/         @AndreBremer
+
+# Toolchain bootstrap. The shared dev assets it used to sit beside now come
+# from the @rcrsr/rill-dev devDependency; this script stays local because it
+# performs the install that fetches that package.
+/scripts/                   @AndreBremer
+
+# Toolchain and lint policy. Changes here silently alter what CI accepts.
+/.oxlintrc.json             @AndreBremer
+/.oxfmtrc.json              @AndreBremer
+/lefthook.yml               @AndreBremer
+/knip.jsonc                 @AndreBremer
+/package.json               @AndreBremer
+/pnpm-workspace.yaml        @AndreBremer
+
+# The public entry points. Editors spawn the bin and hosts import the barrel,
+# so both are compatibility surfaces a routine change can break silently.
+/src/index.ts               @AndreBremer
+/src/bin.ts                 @AndreBremer

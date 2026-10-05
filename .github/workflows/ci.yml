@@ -1,0 +1,80 @@
+name: CI
+
+# No path filtering, deliberately. Both filtering mechanisms are incompatible
+# with required status checks: `paths-ignore` prevents the run entirely, so a
+# required context is never reported and the PR blocks forever; a job-level
+# `if:` gate reports "skipped", which never satisfies a required context. See
+# REPO-STANDARDS.md STD-CI-7. This workflow also runs check:standards,
+# which reads Markdown and workflow files, so filtering `**/*.md` would skip
+# exactly the check that validates the changed files.
+#
+# Every `uses:` here pins a commit SHA with the release it belongs to in a
+# trailing comment, per STD-CI-8. A major tag such as `@v5` is mutable: whoever
+# controls the action repository can retarget it, and the next run executes
+# different code with no diff here. The comment is what dependabot reads to
+# offer an upgrade, so it must stay accurate when a SHA changes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+# Keyed on the ref, so a force-push to a PR branch cancels the superseded run
+# instead of leaving the node matrix racing the new one. `github.workflow` is in
+# the group because a bare ref would collide with the other ref-keyed workflows
+# on this repo. See STD-CI-6.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Never on main: every push to main must leave a completed status behind, and
+  # the branch-protection contexts are reported from this workflow.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # The only job, and the one the required contexts name. `pnpm run check` is
+  # the complete check set: format, lint, types, build, test, deps, standards.
+  # Splitting the root-only checks into a second, non-matrix job meant they ran
+  # on one Node version and never ran locally from `check` at all.
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24', '25']
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Before setup-node, which needs a package manager on PATH to resolve the
+      # pnpm cache directory. See STD-CI-3.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm run check` ends with `check:standards`, so the tree-readable
+      # conformance elements run here and need no step of their own.
+      #
+      # It runs without `--remote`, deliberately. That flag adds §1 merge gates
+      # and §13 repository settings, and neither belongs in the PR path: a pull
+      # request cannot change host state, so gating merges on it means one
+      # out-of-band settings change turns every open PR red for a reason no
+      # author can fix. It would also decide nothing here. GITHUB_TOKEN gets a
+      # repository object with the administrative fields omitted and a 404 from
+      # branches/*/protection, so both groups report as unchecked and the CI
+      # element count is identical with and without the flag. Making it decide
+      # anything means an admin-scoped PAT or a GitHub App in the PR path, to
+      # check settings a PR cannot alter.
+      #
+      # `rill-check-standards --remote` is a maintainer task, run from an
+      # authenticated shell when repository settings change. See CLAUDE.md.
+      - name: Run checks
+        run: pnpm run check

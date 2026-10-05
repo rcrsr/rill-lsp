@@ -1,0 +1,42 @@
+# Pre-sets the native Issue Type. Security WINS over Bug/Feature/Chore when the
+# issue is fundamentally about the server's trust boundary: reading files
+# outside the workspace, executing code from an opened document, or resource
+# exhaustion from a crafted document or request. Editors open untrusted
+# repositories and start the server automatically, so this is a first-class
+# concern. Taxonomy: .github/labeler.yml header.
+name: Security
+description: Workspace file access, code execution from documents, resource exhaustion
+type: Security
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        **Do not file an exploitable vulnerability here.** Report it privately
+        via the channel in [SECURITY.md](../blob/main/SECURITY.md). This form is
+        for hardening work that is safe to discuss in public.
+  - type: textarea
+    id: surface
+    attributes:
+      label: The surface, and what it currently permits
+      description: >-
+        Which boundary, and what a hostile or merely malformed document or request can
+        reach through it today.
+    validations:
+      required: true
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Area(s)
+      description: >-
+        Where in the codebase the work lives, becomes the area:* labels at
+        triage (forms cannot apply per-answer labels).
+      multiple: true
+      options:
+        - protocol
+        - features
+        - grammars
+        - clients
+        - docs
+        - dx
+    validations:
+      required: true

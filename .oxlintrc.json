@@ -1,0 +1,127 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Naming this array replaces oxlint's CLI defaults rather than extending
+  // them, so a plugin left out here is silently off even though the tool
+  // enables it by default. `unicorn` is the one that bites: it is default-on
+  // from the CLI and was inert in this repo until it was listed. Every plugin
+  // this repo wants is therefore named explicitly, including the ones that
+  // report nothing. See REPO-STANDARDS.md STD-LINT-5 and STD-LINT-8.
+  //
+  // Measured on this tree with the full src/ + tests/ scope: `import`,
+  // `promise`, and `unicorn` report 0 findings each. That is not evidence they
+  // are pointless, since most of their rules sit in categories this config does
+  // not enable; they stay listed so a future finding surfaces.
+  "plugins": ["typescript", "oxc", "import", "vitest", "promise", "unicorn"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "eqeqeq": "error",
+    "no-shadow": "error",
+    // Code lines only: blank lines and comments are not counted, so a
+    // well-commented file is not penalised. Tests are exempt in an override
+    // below. See REPO-STANDARDS.md STD-LINT-10.
+    "max-lines": [
+      "error",
+      { "max": 1000, "skipBlankLines": true, "skipComments": true }
+    ],
+    "typescript/no-explicit-any": "error",
+    // Exported functions need explicit types; internal functions may infer.
+    "typescript/explicit-module-boundary-types": "error",
+    "typescript/explicit-function-return-type": "off",
+    "typescript/no-namespace": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/triple-slash-reference": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/no-array-constructor": "error",
+
+    // Rules shared with the reference config, at its severity. STD-LINT-9.
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-empty-named-blocks": "error",
+    "import/no-named-as-default-member": "error",
+    "vitest/expect-expect": "error",
+    "vitest/valid-expect": "error",
+    "vitest/no-standalone-expect": "error",
+    "vitest/no-identical-title": "error",
+    "vitest/no-focused-tests": "error",
+    "vitest/no-disabled-tests": "error",
+    "vitest/no-commented-out-tests": "error",
+    "promise/catch-or-return": "error",
+    "promise/no-return-wrap": "error",
+    "promise/no-new-statics": "error",
+
+    // These three ship in the vitest plugin's `correctness` category, so loading
+    // the plugin turns them on against the `categories` setting. They are off
+    // to match the reference config (STD-LINT-9). Measured on this tree at the
+    // full src/ + tests/ scope: 0 hits each. STD-LINT-6.
+    "vitest/no-conditional-expect": "off",
+    "vitest/require-to-throw-message": "off",
+    "vitest/require-mock-type-parameters": "off",
+    // Off in the reference config, where every hit is a false positive on its
+    // own ctx.catch(thunk, handler) facade. Measured here: 0 hits. STD-LINT-6.
+    "promise/valid-params": "off"
+
+    // `suspicious` and `perf` are not enabled as categories here. rill measured
+    // and declined both; this package is a strict subset of the same idioms and
+    // shares the reference config's decision rather than diverging from it.
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "**/generated/**"
+  ],
+  // Resolved as a package specifier, not a relative path. The subpath export is
+  // the path a consumer actually travels, so pointing at the file inside
+  // node_modules would leave a broken `exports` map undetected here.
+  //
+  // Loading the plugin registers the `rill/*` rules without enabling any of
+  // them; each one is opted into under `overrides` below.
+  "jsPlugins": ["@rcrsr/rill-dev/lint-rules"],
+  "overrides": [
+    {
+      // Tests group many cases per behavior, so the line cap does not apply.
+      "files": ["tests/**"],
+      "rules": { "max-lines": "off" }
+    },
+    {
+      // Both rill/* rules are scoped to shipped source. src/ is what anyone
+      // reading the published package sees, and it is also where every error is
+      // constructed; tests/ is excluded from the first rule on purpose, because
+      // its `Covers:` headers are spec IDs by design.
+      //
+      // The glob is src/ only, not src/ + tests/, and `.ts` only: there is no
+      // TSX in this package, so matching it would describe a surface that does
+      // not exist.
+      //
+      // - no-spec-id-reference: internal planning identifiers are unresolvable for a
+      //   reader of the published package. STD-LINT-3 requires the rule
+      //   whether or not there is anything to leak.
+      // - no-duplicate-error-id: matches nothing today. It binds to the bare
+      //   identifier `RuntimeError` and to `RuntimeError.fromNode`, and this
+      //   package constructs no rill errors. It is enabled anyway
+      //   because a no-op rule costs nothing, whereas leaving it off fails
+      //   silently: the day a module imports rill's RuntimeError, nobody will
+      //   remember there was a rule for this.
+      "files": ["src/**/*.ts"],
+      "rules": {
+        "rill/no-spec-id-reference": "error",
+        "rill/no-duplicate-error-id": "error"
+      }
+    }
+  ]
+}

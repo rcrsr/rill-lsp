@@ -1,0 +1,77 @@
+{
+  "name": "@rcrsr/rill-lsp",
+  "version": "0.1.0",
+  "description": "Language Server Protocol server for the rill scripting language",
+  "license": "MIT",
+  "author": "Andre Bremer",
+  "type": "module",
+  "packageManager": "pnpm@12.9.1+sha512.06b055fff5cd20dc12781de173ced3310ce0951bf2ec620211a16045d5444d5c93a663210764ef29a653a610459ba0368f0e74f84d80c54723cf95aae7bc0d6d",
+  "keywords": [
+    "rill",
+    "lsp",
+    "language-server",
+    "scripting"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "rill-lsp": "./dist/bin.js"
+  },
+  "engines": {
+    "node": ">=22.16.0",
+    "pnpm": ">=12"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepare": "lefthook install --force",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "build": "tsc --build",
+    "build:dev": "tsc --build tsconfig.dev.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rules": "rill-test-rules",
+    "check": "pnpm run check:format && pnpm run check:lint && pnpm run check:types && pnpm run build && pnpm run test && pnpm run test:rules && pnpm run check:deps && pnpm run check:standards",
+    "check:types": "tsc --noEmit -p tsconfig.typecheck.json",
+    "check:lint": "oxlint --config .oxlintrc.json src/ tests/",
+    "check:format": "oxfmt --check",
+    "check:deps": "knip",
+    "check:standards": "rill-check-standards",
+    "fix:lint": "oxlint --config .oxlintrc.json --fix src/ tests/",
+    "fix:format": "oxfmt"
+  },
+  "dependencies": {
+    "@rcrsr/rill": "~0.21.0",
+    "@rcrsr/rill-language-service": "~0.21.0",
+    "vscode-languageserver": "^10.1.2",
+    "vscode-languageserver-textdocument": "^1.0.15"
+  },
+  "devDependencies": {
+    "@rcrsr/rill-dev": "^0.2.6",
+    "@types/node": "^26.6.4",
+    "knip": "^6.39.0",
+    "lefthook": "^2.1.16",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rcrsr/rill-lsp.git"
+  },
+  "homepage": "https://github.com/rcrsr/rill-lsp",
+  "bugs": {
+    "url": "https://github.com/rcrsr/rill-lsp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

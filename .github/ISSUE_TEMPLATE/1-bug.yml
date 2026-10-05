@@ -1,0 +1,55 @@
+# Pre-sets the native Issue Type so issues filed from the web UI land correctly
+# typed without scripts (gh CLI can set types since 2.94; forms also can).
+# Taxonomy: .github/labeler.yml header.
+name: Bug report
+description: The server reports wrong diagnostics, wrong results, or breaks the protocol
+type: Bug
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: >-
+        What you observed vs. what you expected, the symptom, not a guess at the
+        cause or the fix. If it is about the server reading or executing
+        something it should not, file it as a Security issue instead. Security
+        wins over Bug.
+      placeholder: Include the .rill source, the actual result, and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: >-
+        A minimal .rill file and the LSP request that triggers it, the editor
+        and its version, the @rcrsr/rill-lsp version, and your Node version.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Supporting context
+      description: >-
+        Optional. The LSP trace (JSON-RPC messages), stack traces, related
+        issues (#N), and pointers to relevant source. Do not propose a fix: the
+        codebase changes and a solution in the ticket ages.
+    validations:
+      required: false
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Area(s)
+      description: >-
+        Where in the codebase the work lives, becomes the area:* labels at
+        triage (forms cannot apply per-answer labels).
+      multiple: true
+      options:
+        - protocol
+        - features
+        - grammars
+        - clients
+        - docs
+        - dx
+    validations:
+      required: true
