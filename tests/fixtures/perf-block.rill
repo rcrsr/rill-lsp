@@ -1,0 +1,10 @@
+# service block 
+"hello" => $greeting
+42 => $count 
+true => $flag
+#READY => $state
+|x| ($x + 1 => $next) => $inc
+|x| ($x * 2 => $twice) => $double
+dict[a: 1, b: dict[c: 2, d: "x"]] => $cfg
+$greeting -> .upper -> string => $typed
+list[1, 2, 3] -> .len => $items 
