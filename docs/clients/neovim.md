@@ -68,7 +68,7 @@ Open the outline of the current buffer with:
 :lua vim.lsp.buf.document_symbol()
 ```
 
-Symbols are hierarchical. A variable captured inside a closure nests under the closure's function symbol, and entries of a nested dict nest as field children of their parent. Selecting a captured variable in the outline jumps to the capture name.
+Symbols are hierarchical. A variable captured inside a closure nests under the closure's function symbol, and entries of a nested dict nest as field children of their parent. Entries of a top-level dict are root symbols listed beside the variable that captures the dict, not under it. Selecting a captured variable in the outline jumps to the capture name.
 
 Each symbol kind maps to an LSP `SymbolKind` number:
 
