@@ -40,13 +40,14 @@ Always go through the package scripts. `npx <tool>` and `pnpm exec <tool>` bypas
 
 ## Architecture
 
-ESM-only (`"type": "module"`). All intra-package imports use `.js` extensions. Public API is re-exported through `src/index.ts`; tests import `@rcrsr/rill-lsp`, which vitest aliases to `src/index.ts` (see `vitest.config.ts`), so no build is needed before testing.
+ESM-only (`"type": "module"`). All intra-package imports use `.js` extensions. Public API is re-exported through `src/index.ts`; tests import `@rcrsr/rill-lsp`, which vitest aliases to `src/index.ts` (see `vitest.config.ts`), so feature and server tests need no build. `tests/smoke.test.ts` runs the `build` script in its setup, so `pnpm test` (and the lefthook pre-push) writes `dist/`.
 
 | Path | Role |
 |---|---|
 | `src/bin.ts` | stdio entry point. Creates the connection and calls `startServer`. Nothing else. |
 | `src/server.ts` | Lifecycle, `SERVER_CAPABILITIES`, document sync, and handler registration. |
-| `src/features/*.ts` | One module per LSP request. Pure functions from document text (plus position) to LSP types, testable without a connection. |
+| `src/features/*.ts` | One module per LSP request. Pure functions from document text (plus position) to LSP types, apart from an optional `onError` callback invoked on failure. Testable without a connection. |
+| `docs/clients/*.md` | Per-editor setup and behavior guides, e.g. `docs/clients/neovim.md`. |
 
 Rules a routine change can silently break:
 
@@ -58,6 +59,7 @@ Rules a routine change can silently break:
 - Clear published diagnostics in `onDidClose`, and prefix notifications with `void`. See `conduct/policies/policy-domain-node.md` §NOD.3.2.
 - Exported functions and module-level helpers declare explicit return types so the compiler checks LSP payloads. See `conduct/policies/policy-artifact-typescript.md` §TS.2.1.
 - `exactOptionalPropertyTypes` is on: forward optional fields with a conditional spread, `...(x !== undefined ? { x } : {})`.
+- **Handler behavior changes update `docs/clients/neovim.md` in the same commit.** `tests/docs.test.ts` mechanically enforces the legend, token-map, and kind-map facts; everything else in the guide is a review-time rule.
 
 ## Repository standards
 
