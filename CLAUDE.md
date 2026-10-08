@@ -34,19 +34,20 @@ This is a single package, so it uses the root script vocabulary throughout:
 
 Vitest arguments pass straight through, with no `--` separator. `pnpm test -- tests/server.test.ts` silently runs the *whole* suite instead of the one file, so check the reported file count when filtering.
 
-Linting and formatting use oxlint and oxfmt, not ESLint or Prettier. Lefthook runs format then lint on pre-commit, and typecheck+test on pre-push (`LEFTHOOK=0` or `--no-verify` skips).
+Linting and formatting use oxlint and oxfmt, not ESLint or Prettier. Lefthook runs format then lint on pre-commit, and typecheck+test on pre-push (skip with `LEFTHOOK=0` only when explicitly instructed).
 
 Always go through the package scripts. `npx <tool>` and `pnpm exec <tool>` bypass the toolchain versions pinned in `devDependencies`.
 
 ## Architecture
 
-ESM-only (`"type": "module"`). All intra-package imports use `.js` extensions. Public API is re-exported through `src/index.ts`; tests import `@rcrsr/rill-lsp`, which vitest aliases to `src/index.ts` (see `vitest.config.ts`), so no build is needed before testing.
+ESM-only (`"type": "module"`). All intra-package imports use `.js` extensions. Public API is re-exported through `src/index.ts`; tests import `@rcrsr/rill-lsp`, which vitest aliases to `src/index.ts` (see `vitest.config.ts`), so feature and server tests need no build. `tests/smoke.test.ts` runs the `build` script in its setup, so `pnpm test` (and the lefthook pre-push) writes `dist/`.
 
 | Path | Role |
 |---|---|
 | `src/bin.ts` | stdio entry point. Creates the connection and calls `startServer`. Nothing else. |
 | `src/server.ts` | Lifecycle, `SERVER_CAPABILITIES`, document sync, and handler registration. |
-| `src/features/*.ts` | One module per LSP request. Pure functions from document text (plus position) to LSP types, testable without a connection. |
+| `src/features/*.ts` | One module per LSP request. Pure functions from document text (plus position) to LSP types, apart from an optional `onError` callback invoked on failure. Testable without a connection. |
+| `docs/clients/*.md` | Per-editor setup and behavior guides, e.g. `docs/clients/neovim.md`. |
 
 Rules a routine change can silently break:
 
@@ -54,7 +55,11 @@ Rules a routine change can silently break:
 - **Handlers never throw.** An uncaught error can kill the server process and the user's editor session with it. Return an empty result on bad input.
 - **No language logic here.** If a feature needs new parsing or analysis, add it to `@rcrsr/rill-language-service` in rcrsr/rill and consume the release. This repository converts types and positions.
 - **Positions are 0-based UTF-16.** rill spans are 1-based. Convert through `spanToRange` from the language service rather than by hand.
+- **Never write to stdout.** stdout carries JSON-RPC; use `connection.console.log`. See `conduct/policies/policy-domain-node.md` §NOD.7.
+- Clear published diagnostics in `onDidClose`, and prefix notifications with `void`. See `conduct/policies/policy-domain-node.md` §NOD.3.2.
+- Exported functions and module-level helpers declare explicit return types so the compiler checks LSP payloads. See `conduct/policies/policy-artifact-typescript.md` §TS.2.1.
 - `exactOptionalPropertyTypes` is on: forward optional fields with a conditional spread, `...(x !== undefined ? { x } : {})`.
+- **Handler behavior changes update `docs/clients/neovim.md` in the same commit.** `tests/docs.test.ts` mechanically enforces the legend, token-map, and kind-map facts; everything else in the guide is a review-time rule.
 
 ## Repository standards
 
@@ -74,6 +79,8 @@ checked; it still applies. A green run covers only the checked subset.
 
 ### CI checks the tree; `--remote` is a maintainer task
 
+<!-- rule-level: operational -->
+
 CI runs `check:standards` as the last leg of `pnpm run check`, without
 `--remote`. **Do not add it back.** Two independent reasons:
 
@@ -83,7 +90,7 @@ CI runs `check:standards` as the last leg of `pnpm run check`, without
   teaches everyone to ignore the job.
 - **CI credentials cannot read them anyway.** `GITHUB_TOKEN` gets a repository
   object with the administrative fields omitted and a 404 from
-  `branches/*/protection`, so both element groups report as unchecked. The CI
+  `branches/*/protection`, so the §1 merge-gate and §13 repo-setting elements report as unchecked. The CI
   element count is identical with and without the flag; the step implied
   coverage it did not have. Making it decide anything means a long-lived
   admin-scoped PAT or a GitHub App sitting in the PR path, to check settings a
@@ -121,12 +128,11 @@ condition is a defect, not a decision.
 | STD-CHK-7 | "The repository publishes exactly one package and has no root-versus-package version split to reconcile." One package, published from the root manifest. There is no root-vs-package pair to reconcile, so there is no version gate for CI to run. Tag-vs-manifest consistency is a different assertion and is enforced by STD-REL-2 in `release.yml`. |
 | STD-SCRIPT-3 | "The same condition as STD-CHK-7." No `check:versions` / `fix:versions`, for the reason above. |
 | STD-SCRIPT-7 | "The repository is a single package." There are no workspace packages to carry the atomic vocabulary. The single package is the root and takes the root vocabulary from STD-SCRIPT-1 (`check:types`, `check:lint`), not the bare package names. |
-| STD-PM-7 | **Satisfied vacuously, not N/A by the stated condition.** That condition reads "single package with no workspace file", and this repository *does* have a `pnpm-workspace.yaml`: it declares no `packages:` key and carries pnpm settings only, which pnpm reads either way. So the file exists, there are zero globs, and "every workspace glob matches" holds with nothing to check. The checker reports it as `--`. Do not read this row as meeting the written condition; a settings-only workspace file is a shape that condition does not describe. |
+| STD-PM-7 | **Satisfied vacuously, not N/A by the stated condition.** That condition reads "single package with no workspace file", and this repository *does* have a `pnpm-workspace.yaml`: it declares no `packages:` key and carries pnpm settings only, which pnpm reads either way. So the file exists, it lists no globs, and "every workspace glob matches" holds with nothing to check. The checker reports it as `--`. Do not read this row as meeting the written condition; a settings-only workspace file is a shape that condition does not describe. |
 | STD-DEP-4 | "The repository is a single package." Vitest is declared once, in the only manifest, so there is no per-package consistency to keep. |
 | STD-DEP-5 | "The repository has no cross-repository peer dependency." `@rcrsr/rill` and `@rcrsr/rill-language-service` are regular `dependencies`, because the server is an application: editors spawn it, and nothing hosts it. STD-CI-9 still covers drift through `compatibility.yml`. |
 
-Two elements are always-applicable and satisfied rather than N/A. Both are
-machine-checked and report `ok`; the notes stay because they carry the reasoning
+STD-PM-6 and STD-SUP-4 are always-applicable and satisfied rather than N/A. These are machine-checked and report `ok`; the notes stay because they carry the reasoning
 for the shape the checker accepts, which a passing line does not:
 
 - **STD-PM-6.** Verified against the pinned major, pnpm 12.3.4: since pnpm 11 it no
@@ -139,15 +145,14 @@ for the shape the checker accepts, which a passing line does not:
   checker decides this from the tree, reading the pinned pnpm major to know
   which of the two locations is load-bearing; before then it reported `--`.
 - **STD-SUP-4.** `minimumReleaseAgeExclude` names `@rcrsr/rill`,
-  `@rcrsr/rill-language-service`, and `@rcrsr/rill-dev` by name, not by exact version, so both survive the next
-  release with no hand edit. All three are first-party; the rationale for each is in
+  `@rcrsr/rill-language-service`, and `@rcrsr/rill-dev` by name, not by exact version, so they survive the next release with no hand edit. All of them are first-party; the rationale for each is in
   `pnpm-workspace.yaml`.
 
 ### Which `rill/*` lint rules are on
 
 Loading `@rcrsr/rill-dev/lint-rules` through `jsPlugins` registers the rules
 without enabling any of them, so each is a deliberate opt-in in
-`.oxlintrc.json`. Both are on, scoped to `src/**/*.ts`.
+`.oxlintrc.json`. `rill/no-spec-id-reference` and `rill/no-duplicate-error-id` are on, scoped to `src/**/*.ts`.
 
 - **`rill/no-spec-id-reference`.** `src/` is what anyone reading the published
   package sees, and internal planning identifiers are unresolvable there.

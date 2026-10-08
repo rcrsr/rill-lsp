@@ -1,0 +1,3 @@
+"a" => $name
+|x| ($x * 2) => $double
+list [1, 2]

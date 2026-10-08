@@ -68,9 +68,10 @@ jobs:
       - name: Run tests
         run: pnpm run test
 
+      # Authenticates through npm trusted publishing: the registry exchanges the
+      # job's OIDC token (id-token: write above) for a short-lived publish
+      # credential, so no long-lived npm token is stored as a secret.
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Without pipefail the `pnpm publish | tee` below reports tee's exit
           # status, so a failed publish would read as success and the job would

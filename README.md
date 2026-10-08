@@ -6,14 +6,14 @@
 
 ## Status
 
-Early. The server runs and reports parse errors. The remaining features in the table below are in progress.
+Early. The server reports parse errors, outlines, semantic tokens, and formatting. The remaining features in the table below are in progress.
 
 | Capability | LSP method | Status |
 |---|---|---|
 | Parse diagnostics | `textDocument/publishDiagnostics` | Shipped |
-| Document outline | `textDocument/documentSymbol` | Planned |
-| Semantic highlighting | `textDocument/semanticTokens/full` | Planned |
-| Formatting | `textDocument/formatting` | Planned |
+| Document outline | `textDocument/documentSymbol` | Shipped |
+| Semantic highlighting | `textDocument/semanticTokens/full` | Shipped |
+| Formatting | `textDocument/formatting` | Shipped |
 | Hover | `textDocument/hover` | Planned |
 | Go to definition | `textDocument/definition` | Planned |
 | Completion | `textDocument/completion` | Planned |
@@ -41,15 +41,7 @@ Every editor spawns the same command: `rill-lsp`, communicating over stdio.
 
 ### Neovim (0.11+)
 
-```lua
-vim.lsp.config('rill', {
-  cmd = { 'rill-lsp' },
-  filetypes = { 'rill' },
-  root_markers = { '.git' },
-})
-vim.filetype.add({ extension = { rill = 'rill' } })
-vim.lsp.enable('rill')
-```
+See [`docs/clients/neovim.md`](docs/clients/neovim.md) for setup.
 
 ### Emacs (eglot)
 
@@ -68,6 +60,9 @@ The package also exports the server pieces, for hosts that embed the server or t
 | `startServer(connection)` | Wires every rill feature onto an LSP `Connection` and starts listening. The caller owns the transport. |
 | `SERVER_CAPABILITIES` | The `ServerCapabilities` object returned from `initialize`. |
 | `computeDiagnostics(text)` | Parses `text` with error recovery and returns LSP `Diagnostic[]`. Never throws. |
+| `computeSemanticTokens(text, onError?)` | Returns the LSP semantic tokens for `text`. Never throws; reports failures to the optional `onError`. |
+| `computeDocumentSymbols(text, onError?)` | Returns the LSP document outline for `text`. Never throws; reports failures to the optional `onError`. |
+| `computeFormattingEdits(text, onError?)` | Returns LSP `TextEdit[]` that format `text`. Never throws; reports failures to the optional `onError`. |
 
 ```ts
 import { createConnection, ProposedFeatures } from 'vscode-languageserver/node';
